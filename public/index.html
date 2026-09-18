@@ -15,10 +15,7 @@
 </head>
 <body class="h-screen flex overflow-hidden">
 
-  <!-- LEFT PANEL: Chart & Pine Editor -->
   <main class="flex-1 flex flex-col relative border-r tv-border border-[#2a2e39]">
-    
-    <!-- Top Navigation Bar -->
     <header class="h-12 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4 z-20">
       <div class="flex items-center gap-3">
         <div class="flex items-center bg-[#131722] border tv-border rounded px-2 py-1">
@@ -34,8 +31,9 @@
           <button class="px-2 py-1 text-xs rounded bg-[#2a2e39] text-blue-400 font-bold" data-tf="15m">15m</button>
           <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1h">1h</button>
           <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1d">1D</button>
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1w">1W</button>
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1M">1M</button>
         </div>
-        <!-- Indicators Dropdown -->
         <div class="relative border-l tv-border pl-3">
           <button id="btn-ind-menu" class="bg-[#2a2e39] hover:bg-[#363a45] text-xs font-bold px-3 py-1.5 rounded text-gray-200 flex items-center gap-1">
             <span>fx Indicators ▾</span>
@@ -45,13 +43,13 @@
             <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('EMA')">EMA (50)</button>
             <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('BB')">Bollinger Bands (20, 2)</button>
             <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('RSI')">RSI (14)</button>
+            <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('STOCH')">Stochastic (4, 2, 2)</button>
           </div>
         </div>
       </div>
       <button id="btn-pine" class="bg-[#2a2e39] hover:bg-[#363a45] text-xs font-bold px-3 py-1.5 rounded text-blue-400">Pine Editor ⚡</button>
     </header>
 
-    <!-- Legend & Indicator Badges -->
     <div id="legend-box" class="absolute top-14 left-3 z-10 flex flex-col gap-1">
       <div id="legend" class="flex gap-3 text-xs font-mono bg-[#131722]/80 px-2.5 py-1 rounded border tv-border backdrop-blur w-fit">
         <span class="font-bold text-white" id="leg-sym">RELIANCE</span>
@@ -61,18 +59,16 @@
       <div id="active-ind-badges" class="flex flex-wrap gap-1"></div>
     </div>
 
-    <!-- Chart Containers -->
     <div class="flex-1 flex flex-col w-full h-full relative">
       <div id="chart-container" class="flex-1 w-full relative"></div>
       <div id="sub-chart-container" class="h-36 w-full border-t tv-border hidden relative bg-[#131722]">
-        <span id="sub-title" class="absolute top-1 left-2 text-[10px] font-bold text-gray-400 z-10 uppercase">RSI (14)</span>
+        <span id="sub-title" class="absolute top-1 left-2 text-[10px] font-bold text-gray-400 z-10 uppercase"></span>
       </div>
     </div>
 
-    <!-- Pine Editor Drawer -->
     <div id="pine-drawer" class="h-64 bg-[#181c25] border-t tv-border flex flex-col hidden absolute bottom-0 w-full z-30 shadow-2xl">
       <div class="h-9 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4">
-        <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v5 (Browser JIT)</span>
+        <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v5</span>
         <div class="flex gap-2">
           <button id="btn-run-pine" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1 rounded font-bold">Compile & Plot 🚀</button>
           <button id="btn-close-pine" class="text-gray-400 hover:text-white px-2">✕</button>
@@ -80,17 +76,13 @@
       </div>
       <textarea id="pine-code" class="flex-1 bg-[#181c25] text-[#00ffcc] font-mono text-xs p-4 outline-none resize-none">//@version=5
 indicator("Dual MA Strategy", overlay=true)
-
 fast = ta.sma(close, 9)
 slow = ta.ema(close, 21)
-
 plot(fast, "Fast SMA", "#00e5ff", 2)
-plot(slow, "Slow EMA", "#ff9100", 2)
-</textarea>
+plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
     </div>
   </main>
 
-  <!-- RIGHT PANEL: Watchlist -->
   <aside class="w-72 bg-[#1e222d] flex flex-col">
     <div class="p-3 border-b tv-border flex gap-2">
       <select id="wl-exch" class="bg-[#131722] text-xs text-white p-1 rounded outline-none border tv-border">
@@ -104,30 +96,22 @@ plot(slow, "Slow EMA", "#ff9100", 2)
 
   <script>
     let currentSym = 'RELIANCE', currentExch = 'NSE', currentTf = '15m';
-    let activeCandles = [];
-    let mainSeriesList = [];
-    let subSeriesList = [];
-    let subChart = null;
+    let activeCandles = [], mainSeriesList = [], subSeriesList = [], subChart = null;
 
     let watchlist = [
       { sym: 'NIFTY 50', exch: 'INDEX' }, { sym: 'BANK NIFTY', exch: 'INDEX' }, 
       { sym: 'RELIANCE', exch: 'NSE' }, { sym: 'HDFCBANK', exch: 'NSE' }
     ];
 
-    // IST Time Formatters
     const formatIST = (time) => {
       const d = new Date(time * 1000);
-      if (currentTf.includes('d') || currentTf.includes('w')) {
-        return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' }).format(d);
-      }
-      return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+      return currentTf.includes('d') || currentTf.includes('w') || currentTf.includes('M') 
+        ? new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' }).format(d)
+        : new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
     };
 
-    const formatTooltipIST = (time) => {
-      return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time * 1000));
-    };
+    const formatTooltipIST = (time) => new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time * 1000));
 
-    // Chart Configuration with IST
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
       layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
       grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
@@ -136,48 +120,32 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       localization: { timeFormatter: formatTooltipIST }
     });
     
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645'
-    });
-
+    const candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
     new ResizeObserver(e => chart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(document.getElementById('chart-container'));
 
-    // Technical Analysis Math Library
     const ta = {
       sma: (src, len) => {
         const res = [];
         for (let i = 0; i < src.length; i++) {
           if (i < len - 1) { res.push(null); continue; }
-          let sum = 0;
-          for (let j = 0; j < len; j++) sum += src[i - j];
+          let sum = 0; for (let j = 0; j < len; j++) sum += src[i - j];
           res.push(sum / len);
         }
         return res;
       },
       ema: (src, len) => {
-        const res = [];
-        const k = 2 / (len + 1);
-        let prev = null;
+        const res = []; const k = 2 / (len + 1); let prev = null;
         for (let i = 0; i < src.length; i++) {
           if (i < len - 1) { res.push(null); continue; }
-          if (prev === null) {
-            let sum = 0;
-            for (let j = 0; j < len; j++) sum += src[i - j];
-            prev = sum / len;
-          } else {
-            prev = src[i] * k + prev * (1 - k);
-          }
+          if (prev === null) { let sum = 0; for (let j = 0; j < len; j++) sum += src[i - j]; prev = sum / len; } 
+          else { prev = src[i] * k + prev * (1 - k); }
           res.push(prev);
         }
         return res;
       },
       rsi: (src, len) => {
-        const res = [];
-        let gains = 0, losses = 0;
-        for (let i = 1; i <= len; i++) {
-          const diff = src[i] - src[i - 1];
-          if (diff >= 0) gains += diff; else losses -= diff;
-        }
+        const res = []; let gains = 0, losses = 0;
+        for (let i = 1; i <= len; i++) { const diff = src[i] - src[i - 1]; if (diff >= 0) gains += diff; else losses -= diff; }
         let avgG = gains / len, avgL = losses / len;
         for (let i = 0; i < len; i++) res.push(null);
         res.push(100 - (100 / (1 + (avgG / (avgL || 1)))));
@@ -188,22 +156,29 @@ plot(slow, "Slow EMA", "#ff9100", 2)
           res.push(100 - (100 / (1 + (avgG / (avgL || 1)))));
         }
         return res;
+      },
+      stoch: (highs, lows, closes, periodK, smoothK, periodD) => {
+        const kRaw = [];
+        for(let i=0; i<closes.length; i++) {
+          if(i < periodK - 1) { kRaw.push(null); continue; }
+          let highest = -Infinity, lowest = Infinity;
+          for(let j=0; j<periodK; j++) {
+            if(highs[i-j] > highest) highest = highs[i-j];
+            if(lows[i-j] < lowest) lowest = lows[i-j];
+          }
+          kRaw.push((closes[i] - lowest) / (highest - lowest) * 100);
+        }
+        const kSmooth = ta.sma(kRaw.map(v => v === null ? 0 : v), smoothK);
+        for(let i=0; i<kRaw.length; i++) if(kRaw[i] === null) kSmooth[i] = null;
+        const d = ta.sma(kSmooth.map(v => v === null ? 0 : v), periodD);
+        for(let i=0; i<kSmooth.length; i++) if(kSmooth[i] === null) d[i] = null;
+        return { k: kSmooth, d: d };
       }
-    };
-
-    const color = {
-      blue: '#2962ff', red: '#f23645', green: '#089981', orange: '#ff9800',
-      purple: '#9c27b0', teal: '#00e5ff', yellow: '#ffeb3b', white: '#ffffff'
     };
 
     function clearIndicators() {
-      mainSeriesList.forEach(s => chart.removeSeries(s));
-      mainSeriesList = [];
-      if (subChart) {
-        subSeriesList.forEach(s => subChart.removeSeries(s));
-        subSeriesList = [];
-        document.getElementById('sub-chart-container').classList.add('hidden');
-      }
+      mainSeriesList.forEach(s => chart.removeSeries(s)); mainSeriesList = [];
+      if (subChart) { subSeriesList.forEach(s => subChart.removeSeries(s)); subSeriesList = []; document.getElementById('sub-chart-container').classList.add('hidden'); }
       document.getElementById('active-ind-badges').innerHTML = '';
     }
 
@@ -211,160 +186,84 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       const badge = document.createElement('div');
       badge.className = 'bg-[#1e222d] border tv-border text-[11px] px-2 py-0.5 rounded flex items-center gap-1.5 text-gray-300';
       badge.innerHTML = `<span>${name}</span><button class="text-gray-400 hover:text-red-400 font-bold">✕</button>`;
-      badge.querySelector('button').onclick = () => {
-        onRemove();
-        badge.remove();
-      };
+      badge.querySelector('button').onclick = () => { onRemove(); badge.remove(); };
       document.getElementById('active-ind-badges').appendChild(badge);
     }
 
-    // One-Click Presets
     window.addPreset = (type) => {
       document.getElementById('ind-dropdown').classList.add('hidden');
       if (!activeCandles.length) return;
       const close = activeCandles.map(c => c.close);
 
-      if (type === 'SMA') {
-        const data = ta.sma(close, 20);
-        const s = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'SMA 20' });
+      if (type === 'SMA' || type === 'EMA') {
+        const len = type === 'SMA' ? 20 : 50;
+        const data = type === 'SMA' ? ta.sma(close, len) : ta.ema(close, len);
+        const clr = type === 'SMA' ? '#2962ff' : '#ff9800';
+        const s = chart.addLineSeries({ color: clr, lineWidth: 2 });
         s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
-        mainSeriesList.push(s);
-        addIndicatorBadge('SMA (20)', () => chart.removeSeries(s));
-      } else if (type === 'EMA') {
-        const data = ta.ema(close, 50);
-        const s = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 50' });
-        s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
-        mainSeriesList.push(s);
-        addIndicatorBadge('EMA (50)', () => chart.removeSeries(s));
+        mainSeriesList.push(s); addIndicatorBadge(`${type} (${len})`, () => chart.removeSeries(s));
       } else if (type === 'BB') {
-        const mid = ta.sma(close, 20);
-        const upper = [], lower = [];
+        const mid = ta.sma(close, 20); const upper = [], lower = [];
         for (let i = 0; i < close.length; i++) {
           if (i < 19) { upper.push(null); lower.push(null); continue; }
-          let sumSquares = 0;
-          for (let j = 0; j < 20; j++) sumSquares += Math.pow(close[i - j] - mid[i], 2);
-          const dev = Math.sqrt(sumSquares / 20) * 2;
-          upper.push(mid[i] + dev);
-          lower.push(mid[i] - dev);
+          let sumSq = 0; for (let j = 0; j < 20; j++) sumSq += Math.pow(close[i - j] - mid[i], 2);
+          const dev = Math.sqrt(sumSq / 20) * 2; upper.push(mid[i] + dev); lower.push(mid[i] - dev);
         }
-        const sMid = chart.addLineSeries({ color: '#2962ff', lineWidth: 1 });
-        const sUp = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 });
-        const sLow = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 });
+        const sMid = chart.addLineSeries({ color: '#2962ff', lineWidth: 1 }), sUp = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 }), sLow = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 });
         sMid.setData(activeCandles.map((c, i) => mid[i] !== null ? { time: c.time, value: mid[i] } : null).filter(Boolean));
         sUp.setData(activeCandles.map((c, i) => upper[i] !== null ? { time: c.time, value: upper[i] } : null).filter(Boolean));
         sLow.setData(activeCandles.map((c, i) => lower[i] !== null ? { time: c.time, value: lower[i] } : null).filter(Boolean));
-        mainSeriesList.push(sMid, sUp, sLow);
-        addIndicatorBadge('BB (20, 2)', () => { chart.removeSeries(sMid); chart.removeSeries(sUp); chart.removeSeries(sLow); });
+        mainSeriesList.push(sMid, sUp, sLow); addIndicatorBadge('BB (20, 2)', () => { chart.removeSeries(sMid); chart.removeSeries(sUp); chart.removeSeries(sLow); });
       } else if (type === 'RSI') {
-        // Pop up a box asking for the interval, defaults to 14
-        const length = parseInt(prompt("Enter RSI Length:", "14")) || 14; 
-        
-        initSubChart();
-        document.getElementById('sub-title').innerText = `RSI (${length})`;
-        
-        const rsiData = ta.rsi(close, length);
+        initSubChart('RSI (14)');
+        const data = ta.rsi(close, 14);
         const s = subChart.addLineSeries({ color: '#7e57c2', lineWidth: 2 });
-        s.createPriceLine({ price: 70, color: '#787b86', lineStyle: 2 });
-        s.createPriceLine({ price: 30, color: '#787b86', lineStyle: 2 });
-        s.setData(activeCandles.map((c, i) => rsiData[i] !== null ? { time: c.time, value: rsiData[i] } : null).filter(Boolean));
-        subSeriesList.push(s);
-        
-        addIndicatorBadge(`RSI (${length})`, () => {
-          subChart.removeSeries(s);
-          document.getElementById('sub-chart-container').classList.add('hidden');
-        });
+        s.createPriceLine({ price: 70, color: '#787b86', lineStyle: 2 }); s.createPriceLine({ price: 30, color: '#787b86', lineStyle: 2 });
+        s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
+        subSeriesList.push(s); addIndicatorBadge('RSI (14)', () => { subChart.removeSeries(s); document.getElementById('sub-chart-container').classList.add('hidden'); });
+      } else if (type === 'STOCH') {
+        initSubChart('STOCH (4, 2, 2)');
+        const st = ta.stoch(activeCandles.map(c=>c.high), activeCandles.map(c=>c.low), close, 4, 2, 2);
+        const sK = subChart.addLineSeries({ color: '#2962ff', lineWidth: 2 }), sD = subChart.addLineSeries({ color: '#ff9800', lineWidth: 2 });
+        sK.createPriceLine({ price: 80, color: '#787b86', lineStyle: 2 }); sD.createPriceLine({ price: 20, color: '#787b86', lineStyle: 2 });
+        sK.setData(activeCandles.map((c, i) => st.k[i] !== null ? { time: c.time, value: st.k[i] } : null).filter(Boolean));
+        sD.setData(activeCandles.map((c, i) => st.d[i] !== null ? { time: c.time, value: st.d[i] } : null).filter(Boolean));
+        subSeriesList.push(sK, sD); addIndicatorBadge('STOCH (4,2,2)', () => { subChart.removeSeries(sK); subChart.removeSeries(sD); document.getElementById('sub-chart-container').classList.add('hidden'); });
       }
     };
 
-    function initSubChart() {
+    function initSubChart(title) {
       const container = document.getElementById('sub-chart-container');
       container.classList.remove('hidden');
+      document.getElementById('sub-title').innerText = title;
       if (!subChart) {
-        subChart = LightweightCharts.createChart(container, {
-          layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
-          grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
-          rightPriceScale: { borderColor: '#2a2e39' },
-          timeScale: { borderColor: '#2a2e39', timeVisible: true, tickMarkFormatter: formatIST },
-          localization: { timeFormatter: formatTooltipIST }
-        });
+        subChart = LightweightCharts.createChart(container, { layout: { background: { color: '#131722' }, textColor: '#d1d4dc' }, grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } }, rightPriceScale: { borderColor: '#2a2e39' }, timeScale: { borderColor: '#2a2e39', timeVisible: true, tickMarkFormatter: formatIST }, localization: { timeFormatter: formatTooltipIST } });
         new ResizeObserver(e => subChart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(container);
         chart.timeScale().subscribeVisibleLogicalRangeChange(r => subChart.timeScale().setVisibleLogicalRange(r));
         subChart.timeScale().subscribeVisibleLogicalRangeChange(r => chart.timeScale().setVisibleLogicalRange(r));
       }
     }
 
-    // Pine Script Compiler
-    function runPine() {
-      if (!activeCandles.length) return;
-      clearIndicators();
-
-      const rawCode = document.getElementById('pine-code').value;
-      const cleanCode = rawCode
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => !l.startsWith('//@') && !l.startsWith('//'))
-        .join('\n');
-
-      try {
-        const close = activeCandles.map(c => c.close);
-        const open = activeCandles.map(c => c.open);
-        const high = activeCandles.map(c => c.high);
-        const low = activeCandles.map(c => c.low);
-        const volume = activeCandles.map(c => c.volume || 0);
-
-        const plots = [];
-        const plot = (data, title = 'Plot', clr = '#2962ff', lw = 2) => {
-          plots.push({ data, title, color: clr, lw });
-        };
-        const indicator = () => {};
-        const input = (def) => def;
-
-        const runner = new Function('close', 'open', 'high', 'low', 'volume', 'ta', 'plot', 'indicator', 'input', 'color', cleanCode);
-        runner(close, open, high, low, volume, ta, plot, indicator, input, color);
-
-        plots.forEach(p => {
-          const s = chart.addLineSeries({ color: p.color, lineWidth: p.lw, title: p.title });
-          const chartData = [];
-          for (let i = 0; i < activeCandles.length; i++) {
-            if (p.data[i] !== null && !isNaN(p.data[i])) {
-              chartData.push({ time: activeCandles[i].time, value: p.data[i] });
-            }
-          }
-          s.setData(chartData);
-          mainSeriesList.push(s);
-          addIndicatorBadge(p.title, () => chart.removeSeries(s));
-        });
-
-      } catch (e) {
-        alert('Pine Script Compilation Error:\n' + e.message);
-      }
-    }
-
-    // Data Fetching
     async function loadChart(sym, exch, tf) {
       document.getElementById('leg-sym').innerText = sym;
       try {
         const res = await fetch(`/api/history?symbol=${encodeURIComponent(sym)}&exchange=${exch}&timeframe=${tf}`);
         const data = await res.json();
         if (data.error) return alert(data.error);
-        
         activeCandles = data.candles;
         candleSeries.setData(activeCandles);
         chart.timeScale().fitContent();
         updateLeg(activeCandles[activeCandles.length - 1]);
-        runPine();
-      } catch(e) { console.error(e); }
+      } catch(e) {}
     }
 
     function updateLeg(c) {
       if(!c) return;
-      document.getElementById('leg-o').innerText = c.open.toFixed(2);
-      document.getElementById('leg-h').innerText = c.high.toFixed(2);
-      document.getElementById('leg-l').innerText = c.low.toFixed(2);
-      document.getElementById('leg-c').innerText = c.close.toFixed(2);
+      document.getElementById('leg-o').innerText = c.open.toFixed(2); document.getElementById('leg-h').innerText = c.high.toFixed(2);
+      document.getElementById('leg-l').innerText = c.low.toFixed(2); document.getElementById('leg-c').innerText = c.close.toFixed(2);
     }
 
-    // Live Chart Polling
+    // Live Tick Data Updates
     setInterval(async () => {
       if(!activeCandles.length || currentExch === 'F&O') return;
       try {
@@ -386,16 +285,9 @@ plot(slow, "Slow EMA", "#ff9100", 2)
     function renderWatchlist() {
       const list = document.getElementById('wl-list');
       list.innerHTML = watchlist.map(w => `
-        <div class="flex justify-between items-center bg-[#131722] p-2 rounded cursor-pointer hover:bg-[#2a2e39] border border-transparent ${w.sym === currentSym ? 'border-blue-500' : ''}" 
-             onclick="switchSymbol('${w.sym}', '${w.exch}')">
-          <div>
-            <div class="text-xs font-bold">${w.sym}</div>
-            <div class="text-[10px] text-gray-500">${w.exch}</div>
-          </div>
-          <div class="text-right">
-            <div class="text-xs font-mono" id="wl-p-${w.sym}">--</div>
-            <div class="text-[10px] font-mono" id="wl-c-${w.sym}">--</div>
-          </div>
+        <div class="flex justify-between items-center bg-[#131722] p-2 rounded cursor-pointer hover:bg-[#2a2e39] border border-transparent ${w.sym === currentSym ? 'border-blue-500' : ''}" onclick="switchSymbol('${w.sym}', '${w.exch}')">
+          <div><div class="text-xs font-bold">${w.sym}</div><div class="text-[10px] text-gray-500">${w.exch}</div></div>
+          <div class="text-right"><div class="text-xs font-mono" id="wl-p-${w.sym}">--</div><div class="text-[10px] font-mono" id="wl-c-${w.sym}">--</div></div>
         </div>
       `).join('');
       pollWatchlist();
@@ -403,78 +295,57 @@ plot(slow, "Slow EMA", "#ff9100", 2)
 
     window.switchSymbol = (sym, exch) => {
       currentSym = sym; currentExch = exch;
-      document.getElementById('active-sym').value = sym;
-      document.getElementById('active-exch').value = exch;
-      renderWatchlist();
-      loadChart(currentSym, currentExch, currentTf);
+      document.getElementById('active-sym').value = sym; document.getElementById('active-exch').value = exch;
+      renderWatchlist(); loadChart(currentSym, currentExch, currentTf);
     };
 
+    // Fix: Request quotes by explicit exchange group so Indexes don't break
     async function pollWatchlist() {
-      const nse = watchlist.filter(w => w.exch === 'NSE' || w.exch === 'INDEX').map(w => w.sym).join(',');
-      if(!nse) return;
-      const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(nse)}&exchange=NSE`);
-      const data = await res.json();
-      watchlist.forEach(w => {
-        if(data[w.sym]) {
-          const pEl = document.getElementById(`wl-p-${w.sym}`);
-          const cEl = document.getElementById(`wl-c-${w.sym}`);
-          if (pEl) pEl.innerText = data[w.sym].price.toFixed(2);
-          if (cEl) {
-            const sign = data[w.sym].change >= 0 ? '+' : '';
-            cEl.innerText = `${sign}${data[w.sym].change_pct.toFixed(2)}%`;
-            cEl.className = `text-[10px] font-mono ${data[w.sym].change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-          }
-        }
-      });
+      const groups = {};
+      watchlist.forEach(w => { if(!groups[w.exch]) groups[w.exch] = []; groups[w.exch].push(w.sym); });
+      
+      for(const exch in groups) {
+        const syms = groups[exch].join(',');
+        try {
+          const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(syms)}&exchange=${exch}`);
+          const data = await res.json();
+          watchlist.filter(w => w.exch === exch).forEach(w => {
+            if(data[w.sym]) {
+              const pEl = document.getElementById(`wl-p-${w.sym}`), cEl = document.getElementById(`wl-c-${w.sym}`);
+              if (pEl) pEl.innerText = data[w.sym].price.toFixed(2);
+              if (cEl) {
+                const sign = data[w.sym].change >= 0 ? '+' : '';
+                cEl.innerText = `${sign}${data[w.sym].change_pct.toFixed(2)}%`;
+                cEl.className = `text-[10px] font-mono ${data[w.sym].change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+              }
+            }
+          });
+        } catch(e) {}
+      }
     }
     setInterval(pollWatchlist, 5000);
 
     document.getElementById('wl-add').onclick = () => {
-      const sym = document.getElementById('wl-input').value.toUpperCase();
-      const exch = document.getElementById('wl-exch').value;
+      const sym = document.getElementById('wl-input').value.replace(/[\+\-\*\/\s]+$/, '').toUpperCase(), exch = document.getElementById('wl-exch').value;
       if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
     };
-
-   // --- UI Event Listeners with Basket Support ---
-    document.getElementById('btn-ind-menu').onclick = () => {
-      document.getElementById('ind-dropdown').classList.toggle('hidden');
-    };
+    document.getElementById('wl-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('wl-add').click(); });
+    document.getElementById('btn-ind-menu').onclick = () => document.getElementById('ind-dropdown').classList.toggle('hidden');
     document.getElementById('btn-pine').onclick = () => document.getElementById('pine-drawer').classList.toggle('hidden');
     document.getElementById('btn-close-pine').onclick = () => document.getElementById('pine-drawer').classList.add('hidden');
-    document.getElementById('btn-run-pine').onclick = runPine;
-
     document.getElementById('btn-load').onclick = () => {
-      const raw = document.getElementById('active-sym').value;
-      const clean = raw.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
-      document.getElementById('active-sym').value = clean;
-      switchSymbol(clean, document.getElementById('active-exch').value);
+      const clean = document.getElementById('active-sym').value.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
+      document.getElementById('active-sym').value = clean; switchSymbol(clean, document.getElementById('active-exch').value);
     };
-    
-    document.getElementById('active-sym').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('btn-load').click();
-    });
-
-    document.getElementById('wl-add').onclick = () => {
-      const sym = document.getElementById('wl-input').value.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
-      const exch = document.getElementById('wl-exch').value;
-      if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
-    };
-    
-    document.getElementById('wl-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('wl-add').click();
-    });
-
+    document.getElementById('active-sym').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-load').click(); });
     document.getElementById('tf-group').onclick = (e) => {
       if (e.target.tagName !== 'BUTTON') return;
       document.querySelectorAll('#tf-group button').forEach(b => b.className = 'px-2 py-1 text-xs rounded hover:bg-[#2a2e39]');
       e.target.className = 'px-2 py-1 text-xs rounded bg-[#2a2e39] text-blue-400 font-bold';
-      currentTf = e.target.dataset.tf;
-      loadChart(currentSym, currentExch, currentTf);
+      currentTf = e.target.dataset.tf; loadChart(currentSym, currentExch, currentTf);
     };
 
-    // Initialize
-    renderWatchlist();
-    loadChart(currentSym, currentExch, currentTf);
+    renderWatchlist(); loadChart(currentSym, currentExch, currentTf);
   </script>
 </body>
 </html>
