@@ -2,3 +2,4 @@ fastapi
 yfinance
 aiohttp
 python-dateutil
+pandas
