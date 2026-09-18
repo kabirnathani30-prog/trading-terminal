@@ -16,7 +16,6 @@
 <body class="h-screen flex overflow-hidden">
 
   <main class="flex-1 flex flex-col relative border-r tv-border border-[#2a2e39]">
-    <!-- Navigation Bar -->
     <header class="h-12 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4 z-20">
       <div class="flex items-center gap-3">
         <div class="flex items-center bg-[#131722] border tv-border rounded px-2 py-1">
@@ -197,7 +196,7 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
 
     window.addPreset = (type) => {
       document.getElementById('ind-dropdown').classList.add('hidden');
-      if (!activeCandles.length) return;
+      if (!activeCandles || !activeCandles.length) return;
       const close = activeCandles.map(c => c.close);
 
       if (type === 'SMA' || type === 'EMA') {
@@ -220,12 +219,13 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
         sLow.setData(activeCandles.map((c, i) => lower[i] !== null ? { time: c.time, value: lower[i] } : null).filter(Boolean));
         mainSeriesList.push(sMid, sUp, sLow); addIndicatorBadge('BB (20, 2)', () => { chart.removeSeries(sMid); chart.removeSeries(sUp); chart.removeSeries(sLow); });
       } else if (type === 'RSI') {
-        initSubChart('RSI (14)');
-        const data = ta.rsi(close, 14);
+        const length = parseInt(prompt("Enter RSI Length:", "14")) || 14;
+        initSubChart(`RSI (${length})`);
+        const data = ta.rsi(close, length);
         const s = subChart.addLineSeries({ color: '#7e57c2', lineWidth: 2 });
         s.createPriceLine({ price: 70, color: '#787b86', lineStyle: 2 }); s.createPriceLine({ price: 30, color: '#787b86', lineStyle: 2 });
         s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
-        subSeriesList.push(s); addIndicatorBadge('RSI (14)', () => { subChart.removeSeries(s); document.getElementById('sub-chart-container').classList.add('hidden'); });
+        subSeriesList.push(s); addIndicatorBadge(`RSI (${length})`, () => { subChart.removeSeries(s); document.getElementById('sub-chart-container').classList.add('hidden'); });
       } else if (type === 'STOCH') {
         initSubChart('STOCH (4, 2, 2)');
         const st = ta.stoch(activeCandles.map(c=>c.high), activeCandles.map(c=>c.low), close, 4, 2, 2);
@@ -249,9 +249,8 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       }
     }
 
-    // --- RESTORED PINE RUNNER ---
     function runPine() {
-      if (!activeCandles.length) return;
+      if (!activeCandles || !activeCandles.length) return;
       clearIndicators();
 
       const rawCode = document.getElementById('pine-code').value;
@@ -281,13 +280,20 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       try {
         const res = await fetch(`/api/history?symbol=${encodeURIComponent(sym)}&exchange=${exch}&timeframe=${tf}`);
         const data = await res.json();
-        if (data.error) return alert(data.error);
+        
+        // STOPS THE CHART FROM CRASHING IF THE BACKEND FAILS
+        if (!data || !data.candles || data.detail || data.error) {
+            console.error("Backend Error:", data);
+            alert("Error loading data: " + (data.detail || data.error || "Symbol not found"));
+            return;
+        }
+
         activeCandles = data.candles;
         candleSeries.setData(activeCandles);
         chart.timeScale().fitContent();
         updateLeg(activeCandles[activeCandles.length - 1]);
-        runPine(); // Re-plot active scripts
-      } catch(e) {}
+        runPine();
+      } catch(e) { console.error("Fetch failed:", e); }
     }
 
     function updateLeg(c) {
@@ -296,14 +302,16 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       document.getElementById('leg-l').innerText = c.low.toFixed(2); document.getElementById('leg-c').innerText = c.close.toFixed(2);
     }
 
+    // Fixed Polling: Prevents crash if activeCandles is empty
     setInterval(async () => {
-      if(!activeCandles.length || currentExch === 'F&O') return;
+      if(!activeCandles || !activeCandles.length || currentExch === 'F&O') return;
       try {
         const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(currentSym)}&exchange=${currentExch}`);
         const data = await res.json();
-        if(data[currentSym]) {
+        if(data[currentSym] && data[currentSym].price) {
           const price = data[currentSym].price;
           const last = activeCandles[activeCandles.length - 1];
+          if(!last) return;
           last.close = price;
           if(price > last.high) last.high = price;
           if(price < last.low) last.low = price;
@@ -338,6 +346,8 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
         try {
           const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(syms)}&exchange=${exch}`);
           const data = await res.json();
+          if(data.detail || data.error) continue; // Skip if backend fails
+          
           watchlist.filter(w => w.exch === exch).forEach(w => {
             if(data[w.sym]) {
               const pEl = document.getElementById(`wl-p-${w.sym}`), cEl = document.getElementById(`wl-c-${w.sym}`);
