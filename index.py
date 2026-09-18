@@ -1,27 +1,22 @@
-import os
 import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 import yfinance as yf
 import urllib.parse
 from aiohttp import ClientSession
 
 app = FastAPI(title="Pro Trading Terminal Cloud API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-UPSTOX_ACCESS_TOKEN = ""  # Required ONLY for F&O. Equities/Indices use Yahoo.
-
-# --- Vercel Route Fix ---
-@app.get("/")
-def serve_frontend():
-    # Vercel places index.html one folder level above the api directory
-    html_path = os.path.join(os.path.dirname(__file__), "..", "index.html")
-    return FileResponse(html_path)
-# ------------------------
+UPSTOX_ACCESS_TOKEN = ""
 
 def resolve_ticker(symbol: str, exchange: str) -> str:
-# ... (Keep the rest of your code exactly as it was) ...
     s = symbol.strip().upper()
     if exchange == "INDEX":
         if s in ["NIFTY 50", "NIFTY"]: return "^NSEI"
