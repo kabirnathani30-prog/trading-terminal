@@ -256,14 +256,20 @@ plot(slow, "Slow EMA", "#ff9100", 2)
         mainSeriesList.push(sMid, sUp, sLow);
         addIndicatorBadge('BB (20, 2)', () => { chart.removeSeries(sMid); chart.removeSeries(sUp); chart.removeSeries(sLow); });
       } else if (type === 'RSI') {
+        // Pop up a box asking for the interval, defaults to 14
+        const length = parseInt(prompt("Enter RSI Length:", "14")) || 14; 
+        
         initSubChart();
-        const rsiData = ta.rsi(close, 14);
+        document.getElementById('sub-title').innerText = `RSI (${length})`;
+        
+        const rsiData = ta.rsi(close, length);
         const s = subChart.addLineSeries({ color: '#7e57c2', lineWidth: 2 });
         s.createPriceLine({ price: 70, color: '#787b86', lineStyle: 2 });
         s.createPriceLine({ price: 30, color: '#787b86', lineStyle: 2 });
         s.setData(activeCandles.map((c, i) => rsiData[i] !== null ? { time: c.time, value: rsiData[i] } : null).filter(Boolean));
         subSeriesList.push(s);
-        addIndicatorBadge('RSI (14)', () => {
+        
+        addIndicatorBadge(`RSI (${length})`, () => {
           subChart.removeSeries(s);
           document.getElementById('sub-chart-container').classList.add('hidden');
         });
