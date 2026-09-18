@@ -300,6 +300,18 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       if(!c) return;
       document.getElementById('leg-o').innerText = c.open.toFixed(2); document.getElementById('leg-h').innerText = c.high.toFixed(2);
       document.getElementById('leg-l').innerText = c.low.toFixed(2); document.getElementById('leg-c').innerText = c.close.toFixed(2);
+    chart.subscribeCrosshairMove((param) => {
+      if (param.time && param.seriesData.size > 0) {
+        const data = param.seriesData.get(candleSeries);
+        if (data) {
+          updateLeg(data);
+        }
+      } else {
+        if (activeCandles.length > 0) {
+          updateLeg(activeCandles[activeCandles.length - 1]);
+        }
+      }
+    });
     }
 
     // Fixed Polling: Prevents crash if activeCandles is empty
