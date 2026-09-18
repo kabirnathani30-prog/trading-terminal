@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Pro Terminal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body { background: #131722; color: #d1d4dc; font-family: -apple-system, sans-serif; user-select: none; }
+    .tv-border { border-color: #2a2e39; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 4px; }
+  </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+  <!-- LEFT PANEL: Chart & Pine Editor -->
+  <main class="flex-1 flex flex-col relative border-r tv-border border-[#2a2e39]">
+    
+    <!-- Top Nav -->
+    <header class="h-12 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4 z-20">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center bg-[#131722] border tv-border rounded px-2 py-1">
+          <select id="active-exch" class="bg-transparent text-xs font-bold text-blue-400 outline-none cursor-pointer border-r tv-border pr-1 mr-2">
+            <option value="NSE">NSE</option><option value="INDEX">INDEX</option><option value="BSE">BSE</option><option value="F&O">F&O</option>
+          </select>
+          <input type="text" id="active-sym" value="RELIANCE" class="bg-transparent text-white font-bold outline-none w-24 text-sm uppercase">
+          <button id="btn-load" class="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold px-2 py-0.5 rounded ml-2">LOAD</button>
+        </div>
+        <div class="flex gap-1 border-l tv-border pl-3" id="tf-group">
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1m">1m</button>
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="5m">5m</button>
+          <button class="px-2 py-1 text-xs rounded bg-[#2a2e39] text-blue-400 font-bold" data-tf="15m">15m</button>
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1h">1h</button>
+          <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1d">1D</button>
+        </div>
+      </div>
+      <button id="btn-pine" class="bg-[#2a2e39] text-xs font-bold px-3 py-1.5 rounded text-blue-400">Pine Editor ⚡</button>
+    </header>
+
+    <!-- Legend -->
+    <div id="legend" class="absolute top-14 left-3 z-10 flex gap-3 text-xs font-mono bg-[#131722]/80 px-2 py-1 rounded border tv-border backdrop-blur">
+      <span class="font-bold text-white" id="leg-sym">RELIANCE</span>
+      <span>O: <span id="leg-o">--</span></span><span>H: <span id="leg-h">--</span></span>
+      <span>L: <span id="leg-l">--</span></span><span>C: <span id="leg-c">--</span></span>
+    </div>
+
+    <!-- Chart -->
+    <div id="chart-container" class="flex-1 w-full relative"></div>
+
+    <!-- Pine Editor Drawer -->
+    <div id="pine-drawer" class="h-64 bg-[#181c25] border-t tv-border flex flex-col hidden absolute bottom-0 w-full z-30 shadow-xl">
+      <div class="h-9 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4">
+        <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v1</span>
+        <div class="flex gap-2">
+          <button id="btn-run-pine" class="bg-emerald-600 text-xs text-white px-3 py-1 rounded font-bold">Compile & Plot</button>
+          <button id="btn-close-pine" class="text-gray-400 px-2">✕</button>
+        </div>
+      </div>
+      <textarea id="pine-code" class="flex-1 bg-[#181c25] text-[#00ffcc] font-mono text-xs p-4 outline-none resize-none">// Calculate a Simple Moving Average
+const length = 20;
+const sma = ta.sma(close, length);
+plot(sma, "SMA 20", "#2962ff", 2);</textarea>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL: Watchlist -->
+  <aside class="w-72 bg-[#1e222d] flex flex-col">
+    <div class="p-3 border-b tv-border flex gap-2">
+      <select id="wl-exch" class="bg-[#131722] text-xs text-white p-1 rounded outline-none border tv-border">
+        <option value="INDEX">IDX</option><option value="NSE" selected>NSE</option>
+      </select>
+      <input type="text" id="wl-input" placeholder="Add Symbol" class="flex-1 bg-[#131722] text-xs text-white p-1 rounded outline-none border tv-border uppercase">
+      <button id="wl-add" class="bg-blue-600 px-2 rounded text-xs text-white font-bold">+</button>
+    </div>
+    <div id="wl-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+  </aside>
+
+  <script>
+    let currentSym = 'RELIANCE', currentExch = 'NSE', currentTf = '15m';
+    let activeCandles = [], activeIndicators = [];
+    let watchlist = [
+      { sym: 'NIFTY 50', exch: 'INDEX' }, { sym: 'BANK NIFTY', exch: 'INDEX' }, 
+      { sym: 'RELIANCE', exch: 'NSE' }, { sym: 'HDFCBANK', exch: 'NSE' }
+    ];
+
+    // Chart Init
+    const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+      layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+      grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+      rightPriceScale: { borderColor: '#2a2e39' }, timeScale: { borderColor: '#2a2e39', timeVisible: true }
+    });
+    const series = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+    new ResizeObserver(e => chart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(document.getElementById('chart-container'));
+
+    // Data Loading
+    async function loadChart(sym, exch, tf) {
+      document.getElementById('leg-sym').innerText = sym;
+      try {
+        const res = await fetch(`/api/history?symbol=${encodeURIComponent(sym)}&exchange=${exch}&timeframe=${tf}`);
+        const data = await res.json();
+        if (data.error) return alert(data.error);
+        
+        activeCandles = data.candles;
+        series.setData(activeCandles);
+        chart.timeScale().fitContent();
+        updateLeg(activeCandles[activeCandles.length - 1]);
+        runPine(); // Re-plot active scripts
+      } catch(e) { console.error(e); }
+    }
+
+    function updateLeg(c) {
+      if(!c) return;
+      document.getElementById('leg-o').innerText = c.open.toFixed(2);
+      document.getElementById('leg-h').innerText = c.high.toFixed(2);
+      document.getElementById('leg-l').innerText = c.low.toFixed(2);
+      document.getElementById('leg-c').innerText = c.close.toFixed(2);
+    }
+
+    // Live Chart Polling (Every 3 seconds)
+    setInterval(async () => {
+      if(!activeCandles.length || currentExch === 'F&O') return; // F&O polling requires specific broker ticks
+      try {
+        const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(currentSym)}&exchange=${currentExch}`);
+        const data = await res.json();
+        if(data[currentSym]) {
+          const price = data[currentSym].price;
+          const last = activeCandles[activeCandles.length - 1];
+          last.close = price;
+          if(price > last.high) last.high = price;
+          if(price < last.low) last.low = price;
+          series.update(last);
+          updateLeg(last);
+        }
+      } catch(e){}
+    }, 3000);
+
+    // Watchlist Rendering & Polling
+    function renderWatchlist() {
+      const list = document.getElementById('wl-list');
+      list.innerHTML = watchlist.map(w => `
+        <div class="flex justify-between items-center bg-[#131722] p-2 rounded cursor-pointer hover:bg-[#2a2e39] border border-transparent ${w.sym === currentSym ? 'border-blue-500' : ''}" 
+             onclick="switchSymbol('${w.sym}', '${w.exch}')">
+          <div>
+            <div class="text-xs font-bold">${w.sym}</div>
+            <div class="text-[10px] text-gray-500">${w.exch}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-mono" id="wl-p-${w.sym}">--</div>
+            <div class="text-[10px] font-mono" id="wl-c-${w.sym}">--</div>
+          </div>
+        </div>
+      `).join('');
+      pollWatchlist();
+    }
+
+    window.switchSymbol = (sym, exch) => {
+      currentSym = sym; currentExch = exch;
+      document.getElementById('active-sym').value = sym;
+      document.getElementById('active-exch').value = exch;
+      renderWatchlist();
+      loadChart(currentSym, currentExch, currentTf);
+    };
+
+    async function pollWatchlist() {
+      const nse = watchlist.filter(w => w.exch === 'NSE' || w.exch === 'INDEX').map(w => w.sym).join(',');
+      if(!nse) return;
+      const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(nse)}&exchange=NSE`);
+      const data = await res.json();
+      watchlist.forEach(w => {
+        if(data[w.sym]) {
+          document.getElementById(`wl-p-${w.sym}`).innerText = data[w.sym].price.toFixed(2);
+          const cEl = document.getElementById(`wl-c-${w.sym}`);
+          const sign = data[w.sym].change >= 0 ? '+' : '';
+          cEl.innerText = `${sign}${data[w.sym].change_pct.toFixed(2)}%`;
+          cEl.className = `text-[10px] font-mono ${data[w.sym].change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+      });
+    }
+    setInterval(pollWatchlist, 5000);
+
+    document.getElementById('wl-add').onclick = () => {
+      const sym = document.getElementById('wl-input').value.toUpperCase();
+      const exch = document.getElementById('wl-exch').value;
+      if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
+    };
+
+    // Pine Script Engine
+    const PineStdLib = {
+      sma: (src, len) => {
+        const res = [];
+        for (let i = 0; i < src.length; i++) {
+          if (i < len - 1) { res.push(null); continue; }
+          let sum = 0; for (let j = 0; j < len; j++) sum += src[i - j];
+          res.push(sum / len);
+        }
+        return res;
+      }
+    };
+
+    function runPine() {
+      if(!activeCandles.length) return;
+      activeIndicators.forEach(s => chart.removeSeries(s));
+      activeIndicators = [];
+      const code = document.getElementById('pine-code').value;
+      try {
+        const close = activeCandles.map(c => c.close);
+        const plots = [];
+        const ta = { sma: (src, len) => PineStdLib.sma(src, len) };
+        const plot = (data, title, color, lw) => plots.push({data, color, lw});
+        
+        new Function('close', 'ta', 'plot', code)(close, ta, plot);
+        
+        plots.forEach(p => {
+          const s = chart.addLineSeries({ color: p.color, lineWidth: p.lw });
+          const d = [];
+          for(let i=0; i<activeCandles.length; i++) if(p.data[i] !== null) d.push({time: activeCandles[i].time, value: p.data[i]});
+          s.setData(d);
+          activeIndicators.push(s);
+        });
+      } catch(e) { console.error("Pine Error:", e); }
+    }
+
+    document.getElementById('btn-pine').onclick = () => document.getElementById('pine-drawer').classList.toggle('hidden');
+    document.getElementById('btn-close-pine').onclick = () => document.getElementById('pine-drawer').classList.add('hidden');
+    document.getElementById('btn-run-pine').onclick = runPine;
+
+    document.getElementById('btn-load').onclick = () => switchSymbol(document.getElementById('active-sym').value.toUpperCase(), document.getElementById('active-exch').value);
+    document.getElementById('tf-group').onclick = (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      document.querySelectorAll('#tf-group button').forEach(b => b.className = 'px-2 py-1 text-xs rounded hover:bg-[#2a2e39]');
+      e.target.className = 'px-2 py-1 text-xs rounded bg-[#2a2e39] text-blue-400 font-bold';
+      currentTf = e.target.dataset.tf;
+      loadChart(currentSym, currentExch, currentTf);
+    };
+
+    // Init
+    renderWatchlist();
+    loadChart(currentSym, currentExch, currentTf);
+  </script>
+</body>
+</html>
