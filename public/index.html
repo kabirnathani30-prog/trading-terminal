@@ -435,7 +435,7 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
     };
 
-    // UI Event Listeners
+   // --- UI Event Listeners with Basket Support ---
     document.getElementById('btn-ind-menu').onclick = () => {
       document.getElementById('ind-dropdown').classList.toggle('hidden');
     };
@@ -443,7 +443,27 @@ plot(slow, "Slow EMA", "#ff9100", 2)
     document.getElementById('btn-close-pine').onclick = () => document.getElementById('pine-drawer').classList.add('hidden');
     document.getElementById('btn-run-pine').onclick = runPine;
 
-    document.getElementById('btn-load').onclick = () => switchSymbol(document.getElementById('active-sym').value.toUpperCase(), document.getElementById('active-exch').value);
+    document.getElementById('btn-load').onclick = () => {
+      const raw = document.getElementById('active-sym').value;
+      const clean = raw.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
+      document.getElementById('active-sym').value = clean;
+      switchSymbol(clean, document.getElementById('active-exch').value);
+    };
+    
+    document.getElementById('active-sym').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-load').click();
+    });
+
+    document.getElementById('wl-add').onclick = () => {
+      const sym = document.getElementById('wl-input').value.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
+      const exch = document.getElementById('wl-exch').value;
+      if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
+    };
+    
+    document.getElementById('wl-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('wl-add').click();
+    });
+
     document.getElementById('tf-group').onclick = (e) => {
       if (e.target.tagName !== 'BUTTON') return;
       document.querySelectorAll('#tf-group button').forEach(b => b.className = 'px-2 py-1 text-xs rounded hover:bg-[#2a2e39]');
