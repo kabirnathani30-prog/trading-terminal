@@ -296,10 +296,22 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       } catch(e) { console.error("Fetch failed:", e); }
     }
 
+   // 1. Cache the HTML elements ONCE so the browser doesn't search for them every millisecond
+    const legO = document.getElementById('leg-o');
+    const legH = document.getElementById('leg-h');
+    const legL = document.getElementById('leg-l');
+    const legC = document.getElementById('leg-c');
+
     function updateLeg(c) {
       if(!c) return;
-      document.getElementById('leg-o').innerText = c.open.toFixed(2); document.getElementById('leg-h').innerText = c.high.toFixed(2);
-      document.getElementById('leg-l').innerText = c.low.toFixed(2); document.getElementById('leg-c').innerText = c.close.toFixed(2);
+      // 2. Instantly update the cached elements (Zero Lag)
+      legO.innerText = c.open.toFixed(2);
+      legH.innerText = c.high.toFixed(2);
+      legL.innerText = c.low.toFixed(2);
+      legC.innerText = c.close.toFixed(2);
+    }
+
+    // Update legend when mouse moves over the chart
     chart.subscribeCrosshairMove((param) => {
       if (param.time && param.seriesData.size > 0) {
         const data = param.seriesData.get(candleSeries);
@@ -307,12 +319,12 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
           updateLeg(data);
         }
       } else {
-        if (activeCandles.length > 0) {
+        // Revert to latest candle when mouse leaves chart
+        if (activeCandles && activeCandles.length > 0) {
           updateLeg(activeCandles[activeCandles.length - 1]);
         }
       }
     });
-    }
 
     // Fixed Polling: Prevents crash if activeCandles is empty
     setInterval(async () => {
