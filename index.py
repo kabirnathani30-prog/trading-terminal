@@ -1,6 +1,7 @@
 import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import yfinance as yf
 import urllib.parse
 from aiohttp import ClientSession
@@ -83,3 +84,6 @@ async def get_quotes(symbols: str, exchange: str):
         res = await loop.run_in_executor(None, fetch_q, s)
         if res: results[s] = res
     return results
+
+# Mount the static folder at the very end so it serves the frontend properly
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
