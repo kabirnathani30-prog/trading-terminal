@@ -18,7 +18,7 @@
   <!-- LEFT PANEL: Chart & Pine Editor -->
   <main class="flex-1 flex flex-col relative border-r tv-border border-[#2a2e39]">
     
-    <!-- Top Nav -->
+    <!-- Top Navigation Bar -->
     <header class="h-12 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4 z-20">
       <div class="flex items-center gap-3">
         <div class="flex items-center bg-[#131722] border tv-border rounded px-2 py-1">
@@ -35,33 +35,58 @@
           <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1h">1h</button>
           <button class="px-2 py-1 text-xs rounded hover:bg-[#2a2e39]" data-tf="1d">1D</button>
         </div>
-      </div>
-      <button id="btn-pine" class="bg-[#2a2e39] text-xs font-bold px-3 py-1.5 rounded text-blue-400">Pine Editor ⚡</button>
-    </header>
-
-    <!-- Legend -->
-    <div id="legend" class="absolute top-14 left-3 z-10 flex gap-3 text-xs font-mono bg-[#131722]/80 px-2 py-1 rounded border tv-border backdrop-blur">
-      <span class="font-bold text-white" id="leg-sym">RELIANCE</span>
-      <span>O: <span id="leg-o">--</span></span><span>H: <span id="leg-h">--</span></span>
-      <span>L: <span id="leg-l">--</span></span><span>C: <span id="leg-c">--</span></span>
-    </div>
-
-    <!-- Chart -->
-    <div id="chart-container" class="flex-1 w-full relative"></div>
-
-    <!-- Pine Editor Drawer -->
-    <div id="pine-drawer" class="h-64 bg-[#181c25] border-t tv-border flex flex-col hidden absolute bottom-0 w-full z-30 shadow-xl">
-      <div class="h-9 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4">
-        <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v1</span>
-        <div class="flex gap-2">
-          <button id="btn-run-pine" class="bg-emerald-600 text-xs text-white px-3 py-1 rounded font-bold">Compile & Plot</button>
-          <button id="btn-close-pine" class="text-gray-400 px-2">✕</button>
+        <!-- Indicators Dropdown -->
+        <div class="relative border-l tv-border pl-3">
+          <button id="btn-ind-menu" class="bg-[#2a2e39] hover:bg-[#363a45] text-xs font-bold px-3 py-1.5 rounded text-gray-200 flex items-center gap-1">
+            <span>fx Indicators ▾</span>
+          </button>
+          <div id="ind-dropdown" class="absolute top-10 left-3 w-48 bg-[#1e222d] border tv-border rounded shadow-xl py-1 hidden z-50">
+            <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('SMA')">SMA (20)</button>
+            <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('EMA')">EMA (50)</button>
+            <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('BB')">Bollinger Bands (20, 2)</button>
+            <button class="w-full text-left px-3 py-1.5 text-xs hover:bg-[#2a2e39]" onclick="addPreset('RSI')">RSI (14)</button>
+          </div>
         </div>
       </div>
-      <textarea id="pine-code" class="flex-1 bg-[#181c25] text-[#00ffcc] font-mono text-xs p-4 outline-none resize-none">// Calculate a Simple Moving Average
-const length = 20;
-const sma = ta.sma(close, length);
-plot(sma, "SMA 20", "#2962ff", 2);</textarea>
+      <button id="btn-pine" class="bg-[#2a2e39] hover:bg-[#363a45] text-xs font-bold px-3 py-1.5 rounded text-blue-400">Pine Editor ⚡</button>
+    </header>
+
+    <!-- Legend & Indicator Badges -->
+    <div id="legend-box" class="absolute top-14 left-3 z-10 flex flex-col gap-1">
+      <div id="legend" class="flex gap-3 text-xs font-mono bg-[#131722]/80 px-2.5 py-1 rounded border tv-border backdrop-blur w-fit">
+        <span class="font-bold text-white" id="leg-sym">RELIANCE</span>
+        <span>O: <span id="leg-o">--</span></span><span>H: <span id="leg-h">--</span></span>
+        <span>L: <span id="leg-l">--</span></span><span>C: <span id="leg-c">--</span></span>
+      </div>
+      <div id="active-ind-badges" class="flex flex-wrap gap-1"></div>
+    </div>
+
+    <!-- Chart Containers -->
+    <div class="flex-1 flex flex-col w-full h-full relative">
+      <div id="chart-container" class="flex-1 w-full relative"></div>
+      <div id="sub-chart-container" class="h-36 w-full border-t tv-border hidden relative bg-[#131722]">
+        <span id="sub-title" class="absolute top-1 left-2 text-[10px] font-bold text-gray-400 z-10 uppercase">RSI (14)</span>
+      </div>
+    </div>
+
+    <!-- Pine Editor Drawer -->
+    <div id="pine-drawer" class="h-64 bg-[#181c25] border-t tv-border flex flex-col hidden absolute bottom-0 w-full z-30 shadow-2xl">
+      <div class="h-9 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4">
+        <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v5 (Browser JIT)</span>
+        <div class="flex gap-2">
+          <button id="btn-run-pine" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1 rounded font-bold">Compile & Plot 🚀</button>
+          <button id="btn-close-pine" class="text-gray-400 hover:text-white px-2">✕</button>
+        </div>
+      </div>
+      <textarea id="pine-code" class="flex-1 bg-[#181c25] text-[#00ffcc] font-mono text-xs p-4 outline-none resize-none">//@version=5
+indicator("Dual MA Strategy", overlay=true)
+
+fast = ta.sma(close, 9)
+slow = ta.ema(close, 21)
+
+plot(fast, "Fast SMA", "#00e5ff", 2)
+plot(slow, "Slow EMA", "#ff9100", 2)
+</textarea>
     </div>
   </main>
 
@@ -79,22 +104,225 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
 
   <script>
     let currentSym = 'RELIANCE', currentExch = 'NSE', currentTf = '15m';
-    let activeCandles = [], activeIndicators = [];
+    let activeCandles = [];
+    let mainSeriesList = [];
+    let subSeriesList = [];
+    let subChart = null;
+
     let watchlist = [
       { sym: 'NIFTY 50', exch: 'INDEX' }, { sym: 'BANK NIFTY', exch: 'INDEX' }, 
       { sym: 'RELIANCE', exch: 'NSE' }, { sym: 'HDFCBANK', exch: 'NSE' }
     ];
 
-    // Chart Init
+    // Chart Configuration
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
       layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
       grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
-      rightPriceScale: { borderColor: '#2a2e39' }, timeScale: { borderColor: '#2a2e39', timeVisible: true }
+      rightPriceScale: { borderColor: '#2a2e39' },
+      timeScale: { borderColor: '#2a2e39', timeVisible: true }
     });
-    const series = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645'
+    });
+
     new ResizeObserver(e => chart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(document.getElementById('chart-container'));
 
-    // Data Loading
+    // Technical Analysis Math Library
+    const ta = {
+      sma: (src, len) => {
+        const res = [];
+        for (let i = 0; i < src.length; i++) {
+          if (i < len - 1) { res.push(null); continue; }
+          let sum = 0;
+          for (let j = 0; j < len; j++) sum += src[i - j];
+          res.push(sum / len);
+        }
+        return res;
+      },
+      ema: (src, len) => {
+        const res = [];
+        const k = 2 / (len + 1);
+        let prev = null;
+        for (let i = 0; i < src.length; i++) {
+          if (i < len - 1) { res.push(null); continue; }
+          if (prev === null) {
+            let sum = 0;
+            for (let j = 0; j < len; j++) sum += src[i - j];
+            prev = sum / len;
+          } else {
+            prev = src[i] * k + prev * (1 - k);
+          }
+          res.push(prev);
+        }
+        return res;
+      },
+      rsi: (src, len) => {
+        const res = [];
+        let gains = 0, losses = 0;
+        for (let i = 1; i <= len; i++) {
+          const diff = src[i] - src[i - 1];
+          if (diff >= 0) gains += diff; else losses -= diff;
+        }
+        let avgG = gains / len, avgL = losses / len;
+        for (let i = 0; i < len; i++) res.push(null);
+        res.push(100 - (100 / (1 + (avgG / (avgL || 1)))));
+        for (let i = len + 1; i < src.length; i++) {
+          const diff = src[i] - src[i - 1];
+          avgG = (avgG * (len - 1) + (diff > 0 ? diff : 0)) / len;
+          avgL = (avgL * (len - 1) + (diff < 0 ? -diff : 0)) / len;
+          res.push(100 - (100 / (1 + (avgG / (avgL || 1)))));
+        }
+        return res;
+      }
+    };
+
+    // Color definitions to prevent undefined errors in Pine scripts
+    const color = {
+      blue: '#2962ff', red: '#f23645', green: '#089981', orange: '#ff9800',
+      purple: '#9c27b0', teal: '#00e5ff', yellow: '#ffeb3b', white: '#ffffff'
+    };
+
+    function clearIndicators() {
+      mainSeriesList.forEach(s => chart.removeSeries(s));
+      mainSeriesList = [];
+      if (subChart) {
+        subSeriesList.forEach(s => subChart.removeSeries(s));
+        subSeriesList = [];
+        document.getElementById('sub-chart-container').classList.add('hidden');
+      }
+      document.getElementById('active-ind-badges').innerHTML = '';
+    }
+
+    function addIndicatorBadge(name, onRemove) {
+      const badge = document.createElement('div');
+      badge.className = 'bg-[#1e222d] border tv-border text-[11px] px-2 py-0.5 rounded flex items-center gap-1.5 text-gray-300';
+      badge.innerHTML = `<span>${name}</span><button class="text-gray-400 hover:text-red-400 font-bold">✕</button>`;
+      badge.querySelector('button').onclick = () => {
+        onRemove();
+        badge.remove();
+      };
+      document.getElementById('active-ind-badges').appendChild(badge);
+    }
+
+    // One-Click Presets
+    window.addPreset = (type) => {
+      document.getElementById('ind-dropdown').classList.add('hidden');
+      if (!activeCandles.length) return;
+      const close = activeCandles.map(c => c.close);
+
+      if (type === 'SMA') {
+        const data = ta.sma(close, 20);
+        const s = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'SMA 20' });
+        s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
+        mainSeriesList.push(s);
+        addIndicatorBadge('SMA (20)', () => chart.removeSeries(s));
+      } else if (type === 'EMA') {
+        const data = ta.ema(close, 50);
+        const s = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 50' });
+        s.setData(activeCandles.map((c, i) => data[i] !== null ? { time: c.time, value: data[i] } : null).filter(Boolean));
+        mainSeriesList.push(s);
+        addIndicatorBadge('EMA (50)', () => chart.removeSeries(s));
+      } else if (type === 'BB') {
+        const mid = ta.sma(close, 20);
+        const upper = [], lower = [];
+        for (let i = 0; i < close.length; i++) {
+          if (i < 19) { upper.push(null); lower.push(null); continue; }
+          let sumSquares = 0;
+          for (let j = 0; j < 20; j++) sumSquares += Math.pow(close[i - j] - mid[i], 2);
+          const dev = Math.sqrt(sumSquares / 20) * 2;
+          upper.push(mid[i] + dev);
+          lower.push(mid[i] - dev);
+        }
+        const sMid = chart.addLineSeries({ color: '#2962ff', lineWidth: 1 });
+        const sUp = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 });
+        const sLow = chart.addLineSeries({ color: '#00e5ff', lineWidth: 1 });
+        sMid.setData(activeCandles.map((c, i) => mid[i] !== null ? { time: c.time, value: mid[i] } : null).filter(Boolean));
+        sUp.setData(activeCandles.map((c, i) => upper[i] !== null ? { time: c.time, value: upper[i] } : null).filter(Boolean));
+        sLow.setData(activeCandles.map((c, i) => lower[i] !== null ? { time: c.time, value: lower[i] } : null).filter(Boolean));
+        mainSeriesList.push(sMid, sUp, sLow);
+        addIndicatorBadge('BB (20, 2)', () => { chart.removeSeries(sMid); chart.removeSeries(sUp); chart.removeSeries(sLow); });
+      } else if (type === 'RSI') {
+        initSubChart();
+        const rsiData = ta.rsi(close, 14);
+        const s = subChart.addLineSeries({ color: '#7e57c2', lineWidth: 2 });
+        s.createPriceLine({ price: 70, color: '#787b86', lineStyle: 2 });
+        s.createPriceLine({ price: 30, color: '#787b86', lineStyle: 2 });
+        s.setData(activeCandles.map((c, i) => rsiData[i] !== null ? { time: c.time, value: rsiData[i] } : null).filter(Boolean));
+        subSeriesList.push(s);
+        addIndicatorBadge('RSI (14)', () => {
+          subChart.removeSeries(s);
+          document.getElementById('sub-chart-container').classList.add('hidden');
+        });
+      }
+    };
+
+    function initSubChart() {
+      const container = document.getElementById('sub-chart-container');
+      container.classList.remove('hidden');
+      if (!subChart) {
+        subChart = LightweightCharts.createChart(container, {
+          layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+          grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+          rightPriceScale: { borderColor: '#2a2e39' },
+          timeScale: { borderColor: '#2a2e39', timeVisible: true }
+        });
+        new ResizeObserver(e => subChart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(container);
+        // Synchronize timescale between main chart and RSI sub-pane
+        chart.timeScale().subscribeVisibleLogicalRangeChange(r => subChart.timeScale().setVisibleLogicalRange(r));
+        subChart.timeScale().subscribeVisibleLogicalRangeChange(r => chart.timeScale().setVisibleLogicalRange(r));
+      }
+    }
+
+    // Pine Script Compiler
+    function runPine() {
+      if (!activeCandles.length) return;
+      clearIndicators();
+
+      const rawCode = document.getElementById('pine-code').value;
+      // Strip comments and unsupported directives
+      const cleanCode = rawCode
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => !l.startsWith('//@') && !l.startsWith('//'))
+        .join('\n');
+
+      try {
+        const close = activeCandles.map(c => c.close);
+        const open = activeCandles.map(c => c.open);
+        const high = activeCandles.map(c => c.high);
+        const low = activeCandles.map(c => c.low);
+        const volume = activeCandles.map(c => c.volume || 0);
+
+        const plots = [];
+        const plot = (data, title = 'Plot', clr = '#2962ff', lw = 2) => {
+          plots.push({ data, title, color: clr, lw });
+        };
+        const indicator = () => {};
+        const input = (def) => def;
+
+        // Sandboxed execution
+        const runner = new Function('close', 'open', 'high', 'low', 'volume', 'ta', 'plot', 'indicator', 'input', 'color', cleanCode);
+        runner(close, open, high, low, volume, ta, plot, indicator, input, color);
+
+        plots.forEach(p => {
+          const s = chart.addLineSeries({ color: p.color, lineWidth: p.lw, title: p.title });
+          const chartData = [];
+          for (let i = 0; i < activeCandles.length; i++) {
+            if (p.data[i] !== null && !isNaN(p.data[i])) {
+              chartData.push({ time: activeCandles[i].time, value: p.data[i] });
+            }
+          }
+          s.setData(chartData);
+          mainSeriesList.push(s);
+          addIndicatorBadge(p.title, () => chart.removeSeries(s));
+        });
+
+      } catch (e) {
+        alert('Pine Script Compilation Error:\n' + e.message);
+      }
+    }
+
+    // Data Fetching
     async function loadChart(sym, exch, tf) {
       document.getElementById('leg-sym').innerText = sym;
       try {
@@ -103,10 +331,10 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
         if (data.error) return alert(data.error);
         
         activeCandles = data.candles;
-        series.setData(activeCandles);
+        candleSeries.setData(activeCandles);
         chart.timeScale().fitContent();
         updateLeg(activeCandles[activeCandles.length - 1]);
-        runPine(); // Re-plot active scripts
+        runPine();
       } catch(e) { console.error(e); }
     }
 
@@ -118,9 +346,9 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
       document.getElementById('leg-c').innerText = c.close.toFixed(2);
     }
 
-    // Live Chart Polling (Every 3 seconds)
+    // Live Chart Polling
     setInterval(async () => {
-      if(!activeCandles.length || currentExch === 'F&O') return; // F&O polling requires specific broker ticks
+      if(!activeCandles.length || currentExch === 'F&O') return;
       try {
         const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(currentSym)}&exchange=${currentExch}`);
         const data = await res.json();
@@ -130,13 +358,13 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
           last.close = price;
           if(price > last.high) last.high = price;
           if(price < last.low) last.low = price;
-          series.update(last);
+          candleSeries.update(last);
           updateLeg(last);
         }
       } catch(e){}
     }, 3000);
 
-    // Watchlist Rendering & Polling
+    // Watchlist Management
     function renderWatchlist() {
       const list = document.getElementById('wl-list');
       list.innerHTML = watchlist.map(w => `
@@ -170,11 +398,14 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
       const data = await res.json();
       watchlist.forEach(w => {
         if(data[w.sym]) {
-          document.getElementById(`wl-p-${w.sym}`).innerText = data[w.sym].price.toFixed(2);
+          const pEl = document.getElementById(`wl-p-${w.sym}`);
           const cEl = document.getElementById(`wl-c-${w.sym}`);
-          const sign = data[w.sym].change >= 0 ? '+' : '';
-          cEl.innerText = `${sign}${data[w.sym].change_pct.toFixed(2)}%`;
-          cEl.className = `text-[10px] font-mono ${data[w.sym].change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+          if (pEl) pEl.innerText = data[w.sym].price.toFixed(2);
+          if (cEl) {
+            const sign = data[w.sym].change >= 0 ? '+' : '';
+            cEl.innerText = `${sign}${data[w.sym].change_pct.toFixed(2)}%`;
+            cEl.className = `text-[10px] font-mono ${data[w.sym].change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+          }
         }
       });
     }
@@ -186,42 +417,10 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
       if(sym) { watchlist.push({sym, exch}); renderWatchlist(); document.getElementById('wl-input').value = ''; }
     };
 
-    // Pine Script Engine
-    const PineStdLib = {
-      sma: (src, len) => {
-        const res = [];
-        for (let i = 0; i < src.length; i++) {
-          if (i < len - 1) { res.push(null); continue; }
-          let sum = 0; for (let j = 0; j < len; j++) sum += src[i - j];
-          res.push(sum / len);
-        }
-        return res;
-      }
+    // UI Event Listeners
+    document.getElementById('btn-ind-menu').onclick = () => {
+      document.getElementById('ind-dropdown').classList.toggle('hidden');
     };
-
-    function runPine() {
-      if(!activeCandles.length) return;
-      activeIndicators.forEach(s => chart.removeSeries(s));
-      activeIndicators = [];
-      const code = document.getElementById('pine-code').value;
-      try {
-        const close = activeCandles.map(c => c.close);
-        const plots = [];
-        const ta = { sma: (src, len) => PineStdLib.sma(src, len) };
-        const plot = (data, title, color, lw) => plots.push({data, color, lw});
-        
-        new Function('close', 'ta', 'plot', code)(close, ta, plot);
-        
-        plots.forEach(p => {
-          const s = chart.addLineSeries({ color: p.color, lineWidth: p.lw });
-          const d = [];
-          for(let i=0; i<activeCandles.length; i++) if(p.data[i] !== null) d.push({time: activeCandles[i].time, value: p.data[i]});
-          s.setData(d);
-          activeIndicators.push(s);
-        });
-      } catch(e) { console.error("Pine Error:", e); }
-    }
-
     document.getElementById('btn-pine').onclick = () => document.getElementById('pine-drawer').classList.toggle('hidden');
     document.getElementById('btn-close-pine').onclick = () => document.getElementById('pine-drawer').classList.add('hidden');
     document.getElementById('btn-run-pine').onclick = runPine;
@@ -235,9 +434,11 @@ plot(sma, "SMA 20", "#2962ff", 2);</textarea>
       loadChart(currentSym, currentExch, currentTf);
     };
 
-    // Init
+    // Initialize
     renderWatchlist();
     loadChart(currentSym, currentExch, currentTf);
   </script>
+</body>
+</html>
 </body>
 </html>
