@@ -114,13 +114,28 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       { sym: 'RELIANCE', exch: 'NSE' }, { sym: 'HDFCBANK', exch: 'NSE' }
     ];
 
-    // Chart Configuration
+    // IST Time Formatters
+    const formatIST = (time) => {
+      const d = new Date(time * 1000);
+      if (currentTf.includes('d') || currentTf.includes('w')) {
+        return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' }).format(d);
+      }
+      return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+    };
+
+    const formatTooltipIST = (time) => {
+      return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time * 1000));
+    };
+
+    // Chart Configuration with IST
     const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
       layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
       grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
       rightPriceScale: { borderColor: '#2a2e39' },
-      timeScale: { borderColor: '#2a2e39', timeVisible: true }
+      timeScale: { borderColor: '#2a2e39', timeVisible: true, tickMarkFormatter: formatIST },
+      localization: { timeFormatter: formatTooltipIST }
     });
+    
     const candleSeries = chart.addCandlestickSeries({
       upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645'
     });
@@ -176,7 +191,6 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       }
     };
 
-    // Color definitions to prevent undefined errors in Pine scripts
     const color = {
       blue: '#2962ff', red: '#f23645', green: '#089981', orange: '#ff9800',
       purple: '#9c27b0', teal: '#00e5ff', yellow: '#ffeb3b', white: '#ffffff'
@@ -264,10 +278,10 @@ plot(slow, "Slow EMA", "#ff9100", 2)
           layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
           grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
           rightPriceScale: { borderColor: '#2a2e39' },
-          timeScale: { borderColor: '#2a2e39', timeVisible: true }
+          timeScale: { borderColor: '#2a2e39', timeVisible: true, tickMarkFormatter: formatIST },
+          localization: { timeFormatter: formatTooltipIST }
         });
         new ResizeObserver(e => subChart.applyOptions({ width: e[0].contentRect.width, height: e[0].contentRect.height })).observe(container);
-        // Synchronize timescale between main chart and RSI sub-pane
         chart.timeScale().subscribeVisibleLogicalRangeChange(r => subChart.timeScale().setVisibleLogicalRange(r));
         subChart.timeScale().subscribeVisibleLogicalRangeChange(r => chart.timeScale().setVisibleLogicalRange(r));
       }
@@ -279,7 +293,6 @@ plot(slow, "Slow EMA", "#ff9100", 2)
       clearIndicators();
 
       const rawCode = document.getElementById('pine-code').value;
-      // Strip comments and unsupported directives
       const cleanCode = rawCode
         .split('\n')
         .map(l => l.trim())
@@ -300,7 +313,6 @@ plot(slow, "Slow EMA", "#ff9100", 2)
         const indicator = () => {};
         const input = (def) => def;
 
-        // Sandboxed execution
         const runner = new Function('close', 'open', 'high', 'low', 'volume', 'ta', 'plot', 'indicator', 'input', 'color', cleanCode);
         runner(close, open, high, low, volume, ta, plot, indicator, input, color);
 
@@ -438,7 +450,5 @@ plot(slow, "Slow EMA", "#ff9100", 2)
     renderWatchlist();
     loadChart(currentSym, currentExch, currentTf);
   </script>
-</body>
-</html>
 </body>
 </html>
