@@ -16,6 +16,7 @@
 <body class="h-screen flex overflow-hidden">
 
   <main class="flex-1 flex flex-col relative border-r tv-border border-[#2a2e39]">
+    <!-- Navigation Bar -->
     <header class="h-12 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4 z-20">
       <div class="flex items-center gap-3">
         <div class="flex items-center bg-[#131722] border tv-border rounded px-2 py-1">
@@ -59,6 +60,7 @@
       <div id="active-ind-badges" class="flex flex-wrap gap-1"></div>
     </div>
 
+    <!-- Charts -->
     <div class="flex-1 flex flex-col w-full h-full relative">
       <div id="chart-container" class="flex-1 w-full relative"></div>
       <div id="sub-chart-container" class="h-36 w-full border-t tv-border hidden relative bg-[#131722]">
@@ -66,6 +68,7 @@
       </div>
     </div>
 
+    <!-- Pine Editor Drawer -->
     <div id="pine-drawer" class="h-64 bg-[#181c25] border-t tv-border flex flex-col hidden absolute bottom-0 w-full z-30 shadow-2xl">
       <div class="h-9 bg-[#1e222d] border-b tv-border flex items-center justify-between px-4">
         <span class="text-xs font-bold uppercase text-gray-400">Pine Engine v5</span>
@@ -176,6 +179,8 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       }
     };
 
+    const color = { blue: '#2962ff', red: '#f23645', green: '#089981', orange: '#ff9800', purple: '#9c27b0', teal: '#00e5ff', yellow: '#ffeb3b', white: '#ffffff' };
+
     function clearIndicators() {
       mainSeriesList.forEach(s => chart.removeSeries(s)); mainSeriesList = [];
       if (subChart) { subSeriesList.forEach(s => subChart.removeSeries(s)); subSeriesList = []; document.getElementById('sub-chart-container').classList.add('hidden'); }
@@ -244,6 +249,33 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       }
     }
 
+    // --- RESTORED PINE RUNNER ---
+    function runPine() {
+      if (!activeCandles.length) return;
+      clearIndicators();
+
+      const rawCode = document.getElementById('pine-code').value;
+      const cleanCode = rawCode.split('\n').map(l => l.trim()).filter(l => !l.startsWith('//@') && !l.startsWith('//')).join('\n');
+
+      try {
+        const close = activeCandles.map(c => c.close), open = activeCandles.map(c => c.open), high = activeCandles.map(c => c.high), low = activeCandles.map(c => c.low), volume = activeCandles.map(c => c.volume || 0);
+        const plots = [];
+        const plot = (data, title = 'Plot', clr = '#2962ff', lw = 2) => { plots.push({ data, title, color: clr, lw }); };
+        const indicator = () => {}; const input = (def) => def;
+
+        const runner = new Function('close', 'open', 'high', 'low', 'volume', 'ta', 'plot', 'indicator', 'input', 'color', cleanCode);
+        runner(close, open, high, low, volume, ta, plot, indicator, input, color);
+
+        plots.forEach(p => {
+          const s = chart.addLineSeries({ color: p.color, lineWidth: p.lw, title: p.title });
+          const chartData = [];
+          for (let i = 0; i < activeCandles.length; i++) if (p.data[i] !== null && !isNaN(p.data[i])) chartData.push({ time: activeCandles[i].time, value: p.data[i] });
+          s.setData(chartData); mainSeriesList.push(s);
+          addIndicatorBadge(p.title, () => chart.removeSeries(s));
+        });
+      } catch (e) { console.error('Pine Error:', e); }
+    }
+
     async function loadChart(sym, exch, tf) {
       document.getElementById('leg-sym').innerText = sym;
       try {
@@ -254,6 +286,7 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
         candleSeries.setData(activeCandles);
         chart.timeScale().fitContent();
         updateLeg(activeCandles[activeCandles.length - 1]);
+        runPine(); // Re-plot active scripts
       } catch(e) {}
     }
 
@@ -263,7 +296,6 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       document.getElementById('leg-l').innerText = c.low.toFixed(2); document.getElementById('leg-c').innerText = c.close.toFixed(2);
     }
 
-    // Live Tick Data Updates
     setInterval(async () => {
       if(!activeCandles.length || currentExch === 'F&O') return;
       try {
@@ -281,7 +313,6 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       } catch(e){}
     }, 3000);
 
-    // Watchlist Management
     function renderWatchlist() {
       const list = document.getElementById('wl-list');
       list.innerHTML = watchlist.map(w => `
@@ -299,11 +330,9 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
       renderWatchlist(); loadChart(currentSym, currentExch, currentTf);
     };
 
-    // Fix: Request quotes by explicit exchange group so Indexes don't break
     async function pollWatchlist() {
       const groups = {};
       watchlist.forEach(w => { if(!groups[w.exch]) groups[w.exch] = []; groups[w.exch].push(w.sym); });
-      
       for(const exch in groups) {
         const syms = groups[exch].join(',');
         try {
@@ -333,6 +362,7 @@ plot(slow, "Slow EMA", "#ff9100", 2)</textarea>
     document.getElementById('btn-ind-menu').onclick = () => document.getElementById('ind-dropdown').classList.toggle('hidden');
     document.getElementById('btn-pine').onclick = () => document.getElementById('pine-drawer').classList.toggle('hidden');
     document.getElementById('btn-close-pine').onclick = () => document.getElementById('pine-drawer').classList.add('hidden');
+    document.getElementById('btn-run-pine').onclick = runPine;
     document.getElementById('btn-load').onclick = () => {
       const clean = document.getElementById('active-sym').value.replace(/[\+\-\*\/\s]+$/, '').toUpperCase();
       document.getElementById('active-sym').value = clean; switchSymbol(clean, document.getElementById('active-exch').value);
